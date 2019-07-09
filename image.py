@@ -1,6 +1,7 @@
 
 import cv2
 from keras.datasets import mnist
+from pracenje_brojeva import Broj
 import numpy as np
 
 
@@ -56,6 +57,22 @@ def select_roi(image_orig, image_bin):
 
     # sortirati sve regione po x osi (sa leva na desno) i smestiti u promenljivu sorted_regions
     return sorted_regions
+
+
+def select_roi(bin_img):
+
+    _, contours, _ = cv2.findContours(bin_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    konture = []
+
+    for cnt in contours:
+
+        x, y, w, h = cv2.boundingRect(cnt)
+
+        if h > 7:
+            konture.append(Broj((x, y, w, h)))
+
+    return konture
 
 
 def KNN():
