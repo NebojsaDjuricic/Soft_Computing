@@ -55,26 +55,36 @@ def nadji_konture(frejm):
 
 
 def da_li_je_prosao_broj(linija, broj):
-    x, y, w, h = broj.granice_broja
-    centar = (int(x + (w / 2.0)), int(y + (h / 2.0)))
+    x, y, w, h = broj.get_granice_broja()
+    X = int(x + (w / 2.0))
+    Y = int(y + (h / 2.0))
+    centar = X, Y
     donji_desni = broj.donji_desni_ugao()
-    t1, t2 = linija
+    levo_teme, desno_teme = linija
 
-    if t1[0] < centar[0] < t2[0] and t2[1] < centar[1] < t1[1]:
-        p1 = np.array(t1)
-        p2 = np.array(t2)
-        p3 = np.array(centar)
-        # p3 = np.array(donji_desni)
-        distance = norm(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1)
-        # distance = norm(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1)   # 17
+    if levo_teme[0] < centar[0] < desno_teme[0] and desno_teme[1] < centar[1] < levo_teme[1]:
+        tacka1 = np.array(levo_teme)
+        tacka2 = np.array(desno_teme)
+        tacka3 = np.array(centar)
+        # tacka3 = np.array(donji_desni)
+        distance = norm(np.cross(tacka2 - tacka1, tacka1 - tacka3)) / norm(tacka2 - tacka1)
+        # distance = norm(np.cross(tacka2 - tacka1, tacka1 - tacka3)) / norm(tacka2 - tacka1)   # 17
 
         if distance < 30:
             return True
 
     return False
 
+# digits = load_digits()
+# X, y = digits.data, digits.target
+#
+# X_train, X_test, y_train, y_test = train_test_split(X, y)
+# knn = kNN()
+# knn.fit(X_train, y_train)
+
 print('treniranje modela...')
 model = KNN()
+# model = SVM()
 print('model istreniran')
 
 fajl = open('out.txt','w')
@@ -177,7 +187,7 @@ for video in videos:
 
     print('================================')
 
-    # fgbg = cv2.createBackgroundSubtractorMOG2()  # create background subtractor
+    fgbg = cv2.createBackgroundSubtractorMOG2()  # create background subtractor
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     return_val, bin_image = cv2.threshold(gray, 160, 255, cv2.THRESH_BINARY)
@@ -207,38 +217,60 @@ for video in videos:
 
                 if not broj.da_li_je_prosao_plavu_liniju and da_li_je_prosao_broj(pla_lin, broj):
                     slika_br = np.zeros((28, 28)).astype('float32')
-                    x, y, w, h = broj.granice_broja
-                    x, y, w, h = x - 3, y - 3, w + 3, h + 3
-                    x_off = int((28.0 - w) / 2.0)
-                    y_off = int((28.0 - h) / 2.0)
+                    x, y, w, h = broj.get_granice_broja()
+                    x -= 3
+                    y -= 3
+                    w += 3
+                    h += 3
+                    x_mid = int((28.0 - w) / 2.0)
+                    y_mid = int((28.0 - h) / 2.0)
 
                     for i in range(0, w):
                         for j in range(0, h):
-                            if 0 <= y + j < image_bin_bela.shape[0] and 0 <= x + i < image_bin_bela.shape[1]:
-                                slika_br[y_off + j, x_off + i] = image_bin_bela[y + j, x + i] / 255.0
+                            if (y + j >= 0 and y + j < image_bin_bela.shape[0]) and (
+                                    x + i >= 0 and x + i < image_bin_bela.shape[1]):
+                                temp = image_bin_bela[y + j, x + i]
+                                slika_br[y_mid + j, x_mid + i] = temp / 255.0
 
                     # cv2.imshow('broj plava', slika_br)
                     ulaz_za_knn = slika_br.reshape(1, 784).astype('float32')
+
+                    # knn
                     prepoznat_broj = int(model.findNearest(ulaz_za_knn, k=1)[0])
+
+                    # svm
+                    # prepoznat_broj = int(model.predict(ulaz_za_knn))
+
                     print('Preko plave prelazi: ' + str(prepoznat_broj))
                     broj.da_li_je_prosao_plavu_liniju = True
                     suma += prepoznat_broj
 
                 if not broj.da_li_je_prosao_zelenu_liniju and da_li_je_prosao_broj(zel_lin, broj):
                     slika_br = np.zeros((28, 28)).astype('float32')
-                    x, y, w, h = broj.granice_broja
-                    x, y, w, h = x - 3, y - 3, w + 3, h + 3
-                    x_off = int((28.0 - w) / 2.0)
-                    y_off = int((28.0 - h) / 2.0)
+                    x, y, w, h = broj.get_granice_broja()
+                    x -= 3
+                    y -= 3
+                    w += 3
+                    h += 3
+                    x_mid = int((28.0 - w) / 2.0)
+                    y_mid = int((28.0 - h) / 2.0)
 
                     for i in range(0, w):
                         for j in range(0, h):
-                            if 0 <= y + j < image_bin_bela.shape[0] and 0 <= x + i < image_bin_bela.shape[1]:
-                                slika_br[y_off + j, x_off + i] = image_bin_bela[y + j, x + i] / 255.0
+                            if (y + j >= 0 and y + j < image_bin_bela.shape[0]) and (
+                                    x + i >= 0 and x + i < image_bin_bela.shape[1]):
+                                temp = image_bin_bela[y + j, x + i]
+                                slika_br[y_mid + j, x_mid + i] = temp / 255.0
 
                     # cv2.imshow('broj zelena', slika_br)
                     ulaz_za_knn = slika_br.reshape(1, 784).astype('float32')
+
+                    # knn
                     prepoznat_broj = int(model.findNearest(ulaz_za_knn, k=1)[0])
+
+                    # svm
+                    # prepoznat_broj = int(model.predict(ulaz_za_knn))
+
                     print('Preko zelene prelazi: ' + str(prepoznat_broj))
                     broj.da_li_je_prosao_zelenu_liniju = True
                     suma -= prepoznat_broj

@@ -11,9 +11,9 @@ def resize_region(region):
 
 
 #pomeranje slike u gornji levi ugao
-def move(image,x,y):
+def move(image, x, y):
     img = np.zeros((28,28))
-    img[:(28-x),:(28-y)] = image[x:,y:]
+    img[:(28-x), :(28-y)] = image[x:, y:]
 
     return img
 
@@ -30,7 +30,7 @@ def fill(image):
         return image
 
 
-def select_roi(image_orig, image_bin):
+def selectRoi(image_orig, image_bin):
     '''Oznaciti regione od interesa na originalnoj slici. (ROI = regions of interest)
         Za svaki region napraviti posebnu sliku dimenzija 28 x 28.
         Za označavanje regiona koristiti metodu cv2.boundingRect(contour).
@@ -87,3 +87,51 @@ def KNN():
     knn.train(x_train, cv2.ml.ROW_SAMPLE, y_train)
 
     return knn
+
+
+class kNN():
+    def __init__(self):
+        pass
+
+    def fit(self, X, y):
+        self.data = X
+        self.targets = y
+
+    def euclidean_distance(self, X):
+
+        # input: single data point
+        if X.ndim == 1:
+            l2 = np.sqrt(np.sum((self.data - X)**2, axis=1))
+
+        # input: matrix of data points
+        if X.ndim == 2:
+            n_samples, _ = X.shape
+            l2 = [np.sqrt(np.sum((self.data - X[i])**2, axis=1)) for i in range(n_samples)]
+
+        return np.array(l2)
+
+    def predict(self, X, k=1):
+
+        # izmedju inputa i trening podataka
+        dists = self.euclidean_distance(X)
+
+        # find the k nearest neighbors and their classifications
+        if X.ndim == 1:
+            if k == 1:
+                nn = np.argmin(dists)
+                return self.targets[nn]
+            else:
+                knn = np.argsort(dists)[:k]
+                y_knn = self.targets[knn]
+                max_vote = max(y_knn, key=list(y_knn).count)
+                return max_vote
+
+        if X.ndim == 2:
+            knn = np.argsort(dists)[:, :k]
+            y_knn = self.targets[knn]
+            if k == 1:
+                return y_knn.T
+            else:
+                n_samples, _ = X.shape
+                max_votes = [max(y_knn[i], key=list(y_knn[i]).count) for i in range(n_samples)]
+                return max_votes
